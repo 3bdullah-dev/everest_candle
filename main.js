@@ -1,5 +1,5 @@
 // تشغيل مكتبة الانيميشن AOS
-AOS.init({
+ AOS.init({
     duration: 1000,
     once: true,      
     mirror: false,   
@@ -45,7 +45,7 @@ window.addEventListener('scroll', () => {
     }
 });
 
-// تفعيل التنقل النشط (Active Link) - تم تعديل pageYOffset بـ window.scrollY لدعم الموبايل
+// تفعيل التنقل النشط (Active Link) - تم تحديثه ليتوافق تماماً مع الهواتف
 const sections = document.querySelectorAll('section');
 const navLinks = document.querySelectorAll('nav ul li a');
 
