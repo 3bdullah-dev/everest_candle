@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://3bdullah-dev.github.io/everest_candle/sitemap.xml
