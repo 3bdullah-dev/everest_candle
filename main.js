@@ -1,9 +1,11 @@
-// تشغيل مكتبة الانيميشن AOS
- AOS.init({
+// تشغيل مكتبة الانيميشن AOS وإصلاح مشاكل التمرير الجانبي
+AOS.init({
     duration: 1000,
     once: true,      
     mirror: false,   
     anchorPlacement: 'top-bottom',
+    // هذا السطر يمنع حركات اليمين واليسار المسببة للمشاكل على الموبايل إذا لزم الأمر
+    disable: window.innerWidth < 768 
 });
 
 // البرمجة الخاصة بالقائمة الجانبية للموبايل (Hamburger Menu)
@@ -45,7 +47,7 @@ window.addEventListener('scroll', () => {
     }
 });
 
-// تفعيل التنقل النشط (Active Link) - تم تحديثه ليتوافق تماماً مع الهواتف
+// تفعيل التنقل النشط (Active Link) - تم تعديل pageYOffset بـ window.scrollY لدعم الموبايل
 const sections = document.querySelectorAll('section');
 const navLinks = document.querySelectorAll('nav ul li a');
 
