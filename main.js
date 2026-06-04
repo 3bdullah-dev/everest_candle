@@ -1,5 +1,5 @@
- // تشغيل مكتبة الانيميشن AOS
- AOS.init({
+// تشغيل مكتبة الانيميشن AOS
+AOS.init({
     duration: 1000,
     once: true,      
     mirror: false,   
@@ -45,15 +45,17 @@ window.addEventListener('scroll', () => {
     }
 });
 
-// تفعيل التنقل النشط (Active Link)
+// تفعيل التنقل النشط (Active Link) - تم تعديل pageYOffset بـ window.scrollY لدعم الموبايل
 const sections = document.querySelectorAll('section');
 const navLinks = document.querySelectorAll('nav ul li a');
 
 window.addEventListener('scroll', () => {
     let current = '';
+    const scrollY = window.scrollY;
+
     sections.forEach(section => {
         const sectionTop = section.offsetTop;
-        if (pageYOffset >= (sectionTop - 200)) {
+        if (scrollY >= (sectionTop - 220)) {
             current = section.getAttribute('id');
         }
     });
@@ -66,9 +68,7 @@ window.addEventListener('scroll', () => {
     });
 });
 
-// =========================================================
-// [تم الإصلاح بنجاح] كود تشغيل الحركة الذكي وانتقال الصور تلقائياً
-// =========================================================
+// كود تشغيل الحركة الذكي وانتقال الصور تلقائياً
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
 document.querySelectorAll('.product-card').forEach(card => {
@@ -92,7 +92,7 @@ document.querySelectorAll('.product-card').forEach(card => {
         intervalId = null;
         images.forEach(img => img.classList.remove('active-slide'));
         currentIndex = 0;
-        images[0].classList.add('active-slide'); // تم إصلاح السينتكس هنا ليعمل بنجاح
+        images[0].classList.add('active-slide');
     };
 
     if (!isTouchDevice) {
