@@ -124,101 +124,53 @@ document.querySelectorAll(".product-card").forEach((card) => {
 });
 
 // ========================================================
-// 🛑 نظام التتبع المطور والآمن المتوافق مع بروتوكولات جيت هاب (HTTPS)
+// 🛑 نظام التتبع الذكي الآمن والأخير (جلسات + حماية اللوكال وجيت هاب)
 // ========================================================
 
-let totalSeconds = 0;
-let isTabActive = true;
-let ipDataCached = null;
-let hasSentInitialPing = false; 
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRMT_T0ck--12waetnAT0s-hhTtFjfc6txswP4REa9_r5QJkvE6gJ7xHCOsfx8_idX/exec";
+const GOOGLE_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbyHR6IS8vTpQj-i-mobdvTvnZfatsqCxptD-GYh5plmR_8KKtJAfvAtYIgxpMyDnSGH/exec";
 
 function getDeviceName() {
-    let deviceName = window.innerWidth > 1024 ? "Desktop (كمبيوتر)" : "Mobile (موبايل)";
-    if (localStorage.getItem('is_owner') === 'true' && window.innerWidth > 1024) {
-        deviceName = "👑 المطور عبد الله (PC)";
-    }
-    return deviceName;
+  let deviceName =
+    window.innerWidth > 1024 ? "Desktop (كمبيوتر)" : "Mobile (موبايل)";
+  if (localStorage.getItem("is_owner") === "true" && window.innerWidth > 1024) {
+    deviceName = "👑 المطور عبد الله (PC)";
+  }
+  return deviceName;
 }
 
-function formatTime(seconds) {
-    if (seconds < 60) return seconds + " ثانية";
-    let mins = Math.floor(seconds / 60);
-    let secs = seconds % 60;
-    return mins + " دقيقة و " + secs + " ثانية";
-}
+// فحص الجلسة الحالية
+if (!sessionStorage.getItem("visit_sent")) {
+  fetch("https://ip-api.com/json/?lang=ar")
+    .then((res) => {
+      if (!res.ok) throw new Error("Network response was not ok");
+      return res.json();
+    })
+    .then((data) => {
+      const payload = {
+        timestamp: new Date().toLocaleString("ar-EG"),
+        country: data.country || "Unknown",
+        city: data.regionName || "Unknown",
+        ip: data.query || "Unknown",
+        device: getDeviceName(),
+      };
 
-function sendTrackingPayload() {
-    if (!ipDataCached) return;
-
-    const payload = {
-        timestamp: new Date().toLocaleString('ar-EG'),
-        country: ipDataCached.country_name || "Unknown",
-        city: ipDataCached.city || "Unknown",
-        ip: ipDataCached.ip || "Unknown",
-        timeSpent: formatTime(totalSeconds),
-        device: getDeviceName()
-    };
-
-    fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
+      // إرسال البيانات بشكل آمن ومضمون
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-        keepalive: true
-    });
+        keepalive: true,
+      })
+        .then(() => {
+          // حجز علامة الجلسة فقط عند نجاح إرسال الطلب لمنع تكراره
+          sessionStorage.setItem("visit_sent", "true");
+          console.log("تم رصد الزيارة بنجاح وإرسالها إلى الرادار.");
+        })
+        .catch((e) => console.log("فشل طرد البيانات للسيرفر:", e));
+    })
+    .catch((err) => console.log("خطأ جلب بيانات الـ IP للزائر:", err));
+} else {
+  console.log("الزيارة مسجلة مسبقاً في هذه الجلسة، تم منع التكرار الفوري.");
 }
-
-// 👑 تم تعديل الرابط إلى https الآمن لحل مشكلة اختفاء الصفحة على جيت هاب نهائياً
-fetch('https://ipapi.co/json/')
-    .then(res => {
-        if (!res.ok) throw new Error('Network response error');
-        return res.json();
-    })
-    .then(data => { 
-        ipDataCached = data;
-        // إرسال الإشارة الفورية بمجرد قراءة الـ IP لحفظ بيانات مستخدمي الموبايل
-        if (!hasSentInitialPing) {
-            sendTrackingPayload();
-            hasSentInitialPing = true;
-        }
-    })
-    .catch(err => {
-        console.log("خطأ الـ IP الآمن، المحاولة عبر البديل الحمي:", err);
-        // خطة بديلة سريعة في حال تعطل السيرفر الأول لعدم تجميد الأنميشن والصفحة
-        fetch('https://ipinfo.io/json?token=') 
-            .then(res => res.json())
-            .then(backupData => {
-                ipDataCached = {
-                    country_name: backupData.country || "Unknown",
-                    city: backupData.city || "Unknown",
-                    ip: backupData.ip || "Unknown"
-                };
-                if (!hasSentInitialPing) {
-                    sendTrackingPayload();
-                    hasSentInitialPing = true;
-                }
-            }).catch(e => console.log("جميع سيرفرات الـ IP محجوبة", e));
-    });
-
-document.addEventListener('visibilitychange', function() {
-    isTabActive = !document.hidden;
-});
-
-setInterval(() => { 
-    if (isTabActive) totalSeconds++; 
-}, 1000);
-
-// نبضة دورية صامتة كل 10 ثوانٍ لتحديث وقت النشاط ومنع ضياع حركة الموبايل
-setInterval(() => {
-    if (isTabActive && ipDataCached && hasSentInitialPing) {
-        sendTrackingPayload();
-    }
-}, 10000);
-
-// طرد أخير عند محاولة قفل الصفحة كإجراء إضافي
-window.addEventListener('pagehide', function () {
-    if (ipDataCached && totalSeconds > 2) {
-        sendTrackingPayload();
-    }
-});
