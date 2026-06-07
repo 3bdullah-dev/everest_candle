@@ -131,46 +131,59 @@ const GOOGLE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbxLtEhvooViD3sbZQrYJvh4DMVFBKwdPR2QO9auK0X0SM1iWIzx0JJ3fQdYqvVl051T/exec";
 
 function getDeviceName() {
-  let deviceName =
-    window.innerWidth > 1024 ? "Desktop (كمبيوتر)" : "Mobile (موبايل)";
+  let deviceName = window.innerWidth > 1024 ? "Desktop (كمبيوتر)" : "Mobile (موبايل)";
   if (localStorage.getItem("is_owner") === "true" && window.innerWidth > 1024) {
     deviceName = "👑 المطور عبد الله (PC)";
   }
   return deviceName;
 }
 
-// فحص الجلسة الحالية
-if (!sessionStorage.getItem("visit_sent")) {
-  fetch("https://ip-api.com/json/?lang=ar")
+// دالة لفحص قفل التبويبة (Session Cookie) تضمن لو قفل ودخل تاني يتحسب زائر جديد
+function shouldTrackVisit() {
+  const cookieName = "visit_tracked_session";
+  const match = document.cookie.match(new RegExp('(^| )' + cookieName + '=([^;]+)'));
+  if (!match) {
+    // تعيين الكوكيز بدون تاريخ انتهاء لتنتهي فوراً بمجرد قفل التبويبة/المتصفح
+    document.cookie = `${cookieName}=true; path=/; SameSite=Strict`;
+    return true;
+  }
+  return false;
+}
+
+// احتساب الزائر فوراً وبأعلى دقة للموقع
+if (shouldTrackVisit()) {
+  // استخدام api دقيق جداً للمحافظات والـ IP الكامل
+  fetch("https://ipapi.co/json/")
     .then((res) => {
-      if (!res.ok) throw new Error("Network response was not ok");
+      if (!res.ok) throw new Error("فشل الاتصال بسيرفر الموقع الجغرافي");
       return res.json();
     })
     .then((data) => {
+      // تجميع اسم المدينة والمحافظة بدقة (مثل: Mansoura, Dakahlia)
+      const exactLocation = data.city ? `${data.city} (${data.region})` : "Unknown";
+      
       const payload = {
         timestamp: new Date().toLocaleString("ar-EG"),
-        country: data.country || "Unknown",
-        city: data.regionName || "Unknown",
-        ip: data.query || "Unknown",
+        country: data.country_name || "Unknown",
+        city: exactLocation,
+        ip: data.ip || "Unknown", // الـ IP الكامل (الذي يبدأ بـ 8 أو غيره)
         device: getDeviceName(),
       };
 
-      // إرسال البيانات بشكل آمن ومضمون
+      // إرسال البيانات فوراً للـ Apps Script
       fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
-        mode: "no-cors",
+        mode: "no-cors", // متوافق مع قيود جوجل سكريبت لضمان الوصول
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
         keepalive: true,
       })
-        .then(() => {
-          // حجز علامة الجلسة فقط عند نجاح إرسال الطلب لمنع تكراره
-          sessionStorage.setItem("visit_sent", "true");
-          console.log("تم رصد الزيارة بنجاح وإرسالها إلى الرادار.");
-        })
-        .catch((e) => console.log("فشل طرد البيانات للسيرفر:", e));
+      .then(() => {
+        console.log("تم رصد الزيارة والموقع بدقة وإرسالها للرادار بنجاح.");
+      })
+      .catch((e) => console.log("خطأ في إرسال البيانات:", e));
     })
-    .catch((err) => console.log("خطأ جلب بيانات الـ IP للزائر:", err));
+    .catch((err) => console.log("خطأ في جلب بيانات الـ IP:", err));
 } else {
-  console.log("الزيارة مسجلة مسبقاً في هذه الجلسة، تم منع التكرار الفوري.");
+  console.log("الزيارة مسجلة في هذه الجلسة الحالية من قبل.");
 }
