@@ -128,7 +128,7 @@ document.querySelectorAll(".product-card").forEach((card) => {
 // ========================================================
 
 const GOOGLE_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbyHR6IS8vTpQj-i-mobdvTvnZfatsqCxptD-GYh5plmR_8KKtJAfvAtYIgxpMyDnSGH/exec";
+  "https://script.google.com/macros/s/AKfycbxLtEhvooViD3sbZQrYJvh4DMVFBKwdPR2QO9auK0X0SM1iWIzx0JJ3fQdYqvVl051T/exec";
 
 function getDeviceName() {
   let deviceName =
