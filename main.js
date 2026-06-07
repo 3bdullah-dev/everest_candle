@@ -4,6 +4,7 @@ AOS.init({
   once: true,
   mirror: false,
   anchorPlacement: "top-bottom",
+  // هذا السطر يمنع حركات اليمين واليسار المسببة للمشاكل على الموبايل إذا لزم الأمر
   disable: window.innerWidth < 768,
 });
 
@@ -46,7 +47,7 @@ window.addEventListener("scroll", () => {
   }
 });
 
-// تفعيل التنقل النشط (Active Link)
+// تفعيل التنقل النشط (Active Link) - تم تعديل pageYOffset بـ window.scrollY لدعم الموبايل
 const sections = document.querySelectorAll("section");
 const navLinks = document.querySelectorAll("nav ul li a");
 
@@ -115,105 +116,59 @@ document.querySelectorAll(".product-card").forEach((card) => {
       });
     }, observerOptions);
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          startSlider();
-        } else {
-          stopSlider();
-        }
-      });
-    }, observerOptions);
-
     observer.observe(card);
   }
 });
 
-// ========================================================
-// 🛑 نظام التتبع المطور والنبضات الدورية الصامتة (صائد زيارات الموبايل)
-// ========================================================
-
 let totalSeconds = 0;
 let isTabActive = true;
 let ipDataCached = null;
-let hasSentInitialPing = false;
-const GOOGLE_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbyHFq23H07wfkAk_HzyPLX8xls19B66GHTZIi7B72otT8ZtO6ftty3hLnQ0qDhJ3qSS/exec";
+// ⚠️ ضع هنا رابط الـ Web App الخاص بك والناتج عن سكريبت شيت المحدث (6 أعمدة)
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRMT_T0ck--12waetnAT0s-hhTtFjfc6txswP4REa9_r5QJkvE6gJ7xHCOsfx8_idX/exec";
 
-// تحضير وتحديد اسم ونوع الجهاز بدقة
-function getDeviceName() {
-  let deviceName =
-    window.innerWidth > 1024 ? "Desktop (كمبيوتر)" : "Mobile (موبايل)";
-  if (localStorage.getItem("is_owner") === "true" && window.innerWidth > 1024) {
-    deviceName = "👑 المطور عبد الله (PC)";
-  }
-  return deviceName;
-}
+// 1. لقط بيانات الـ IP والموقع فور الدخول وتخزينها في الذاكرة
+fetch('https://ipapi.co/json/')
+    .then(res => res.json())
+    .then(data => { ipDataCached = data; })
+    .catch(err => console.log("خطأ الـ IP:", err));
 
-// صيغة الوقت المريحة للقراءة
-function formatTime(seconds) {
-  if (seconds < 60) return seconds + " ثانية";
-  let mins = Math.floor(seconds / 60);
-  let secs = seconds % 60;
-  return mins + " دقيقة و " + secs + " ثانية";
-}
-
-// دالة إرسال الطرود البرمجية إلى السيرفر (تتحمل العمل في الخلفية)
-function sendTrackingPayload(isHeartbeat = false) {
-  if (!ipDataCached) return;
-
-  const payload = {
-    timestamp: new Date().toLocaleString("ar-EG"),
-    country: ipDataCached.country_name || "Unknown",
-    city: ipDataCached.city || "Unknown",
-    ip: ipDataCached.ip || "Unknown",
-    timeSpent: formatTime(totalSeconds),
-    device: getDeviceName(),
-    heartbeat: isHeartbeat, // علم إضافي للسيرفر إذا كنت حابب تستخدمه لمعالجة السطور المتكررة
-  };
-
-  fetch(GOOGLE_SCRIPT_URL, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-    keepalive: true,
-  });
-}
-
-// 1. صيد البيانات فورا عند الدخول وإرسال الطرد الأولي فوراً
-fetch("https://ipapi.co/json/")
-  .then((res) => res.json())
-  .then((data) => {
-    ipDataCached = data;
-    // إرسال البيانات فوراً في أول ثانيتين من الدخول لحفظ الزيارة من الموبايل
-    if (!hasSentInitialPing) {
-      sendTrackingPayload(false);
-      hasSentInitialPing = true;
-    }
-  })
-  .catch((err) => console.log("خطأ الـ IP:", err));
-
-// تتبع حالة تفاعل التاب
-document.addEventListener("visibilitychange", function () {
-  isTabActive = !document.hidden;
+document.addEventListener('visibilitychange', function() {
+    isTabActive = !document.hidden;
 });
 
-// عداد الثواني الفعلي للزائر
-setInterval(() => {
-  if (isTabActive) totalSeconds++;
-}, 1000);
+setInterval(() => { if (isTabActive) totalSeconds++; }, 1000);
 
-// 2. النبضات الدورية الصامتة (كل 10 ثوانٍ يتم تحديث الوقت في الشيت تلقائياً)
-setInterval(() => {
-  if (isTabActive && ipDataCached && hasSentInitialPing) {
-    sendTrackingPayload(true);
-  }
-}, 10000); // 10 ثوانٍ هي المدة المثالية بدون إرهاق السيرفر وضمان عدم فقدان داتا الموبايل
+function formatTime(seconds) {
+    if (seconds < 60) return seconds + " ثانية";
+    let mins = Math.floor(seconds / 60);
+    let secs = seconds % 60;
+    return mins + " دقيقة و " + secs + " ثانية";
+}
 
-// 3. طرد الطوارئ الأخير كدعم إضافي عند محاولة الإغلاق الطبيعي
-window.addEventListener("pagehide", function () {
-  if (ipDataCached && totalSeconds > 2) {
-    sendTrackingPayload(true);
-  }
+// 2. الطرد النهائي المضمون عند قفل الصفحة أو مغادرتها
+window.addEventListener('pagehide', function () {
+    if (!ipDataCached || totalSeconds < 2) return;
+
+    // تمييز جهاز الكمبيوتر الخاص بك
+    let deviceName = window.innerWidth > 1024 ? "Desktop (كمبيوتر)" : "Mobile (موبايل)";
+    if (localStorage.getItem('is_owner') === 'true' && window.innerWidth > 1024) {
+        deviceName = "👑 المطور عبد الله (PC)";
+    }
+
+    const payload = {
+        timestamp: new Date().toLocaleString('ar-EG'),
+        country: ipDataCached.country_name || "Unknown",
+        city: ipDataCached.city || "Unknown",
+        ip: ipDataCached.ip || "Unknown", // شحن الـ IP صراحة إلى السيرفر
+        timeSpent: formatTime(totalSeconds),
+        device: deviceName
+    };
+
+    fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        keepalive: true
+    });
 });
